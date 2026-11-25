@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Holmes Teulu Dashboard</title>
+  <style>
+    :root {
+      --bg: #f4f6f9;
+      --card: #ffffff;
+      --text: #1e293b;
+      --muted: #64748b;
+      --accent: #2563eb;
+      --border: #e2e8f0;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 20px;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    h1 { font-size: 1.5rem; }
+    .clock { font-size: 1.1rem; color: var(--muted); font-weight: 500; }
+    .grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 20px;
+      height: calc(100vh - 90px);
+    }
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .card {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 18px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      border: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .card-header h2 { font-size: 1.1rem; }
+    .edit-btn {
+      font-size: 0.8rem;
+      text-decoration: none;
+      color: var(--accent);
+      background: #eff6ff;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-weight: 600;
+    }
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      border-radius: 8px;
+    }
+    ul { list-style: none; overflow-y: auto; }
+    li {
+      padding: 8px 0;
+      border-bottom: 1px solid #f1f5f9;
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.95rem;
+    }
+    li:last-child { border-bottom: none; }
+    .day { font-weight: 600; color: var(--accent); width: 100px; }
+    .done { text-decoration: line-through; color: var(--muted); }
+    @media (max-width: 850px) {
+      .grid { grid-template-columns: 1fr; height: auto; }
+      iframe { height: 450px; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>🏡 Holmes Teulu Hub</h1>
+    <div class="clock" id="clock"></div>
+  </header>
+
+  <div class="grid">
+    <!-- Left Column: Google Calendar -->
+    <div class="card">
+      <div class="card-header">
+        <h2>📅 Schedule</h2>
+        <a class="edit-btn" href="https://calendar.google.com" target="_blank">Open Calendar ↗</a>
+      </div>
+      <iframe id="calendar-frame" src=""></iframe>
+    </div>
+
+    <!-- Right Column: Meals & To-Do -->
+    <div class="sidebar">
+      <div class="card" style="flex: 1;">
+        <div class="card-header">
+          <h2>🍽️ Meals This Week</h2>
+          <a class="edit-btn" id="sheet-link-1" href="#" target="_blank">Edit Sheet ↗</a>
+        </div>
+        <ul id="meals-list"><li>Loading meals...</li></ul>
+      </div>
+
+      <div class="card" style="flex: 1;">
+        <div class="card-header">
+          <h2>✅ To-Do List</h2>
+          <a class="edit-btn" id="sheet-link-2" href="#" target="_blank">Edit Sheet ↗</a>
+        </div>
+        <ul id="todo-list"><li>Loading tasks...</li></ul>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ================= CONFIGURATION =================
+    const CONFIG = {
+      CALENDAR_EMBED_URL: "https://calendar.google.com/calendar/embed?src=joe%40cardiffeastscouts.org.uk&ctz=Europe%2FLondon",
+      MEALS_CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vRuZ3vfGXRH4MyeigHbCX3oD44oCM9Nxg-HVpWTj0na--tp17apvGrxyN5pg6mwT2pDhE8tdX-WbtNp/pub?gid=0&single=true&output=csv",
+      TODO_CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vRuZ3vfGXRH4MyeigHbCX3oD44oCM9Nxg-HVpWTj0na--tp17apvGrxyN5pg6mwT2pDhE8tdX-WbtNp/pub?gid=2064555196&single=true&output=csv",
+      EDITABLE_SHEET_URL: "https://docs.google.com/spreadsheets/d/1NmFzVkjwokyvLeBv9LITT8dE7TYHJ-FYYNBqbYHHQAY/edit?gid=0#gid=0"
+    };
+    // =================================================
+
+    document.getElementById("calendar-frame").src = CONFIG.CALENDAR_EMBED_URL;
+    document.getElementById("sheet-link-1").href = CONFIG.EDITABLE_SHEET_URL;
+    document.getElementById("sheet-link-2").href = CONFIG.EDITABLE_SHEET_URL;
+
+    // Live Clock
+    function updateClock() {
+      const now = new Date();
+      document.getElementById("clock").textContent = now.toLocaleDateString(undefined, {
+        weekday: 'long', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+      });
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // Simple CSV Parser (handles basic quoted strings)
+    function parseCSV(text) {
+      return text.trim().split("\n").slice(1).map(row => {
+        const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+        return cols.map(c => c.replace(/^"|"$/g, "").trim());
+      });
+    }
+
+    // Fetch Meals
+    async function loadMeals() {
+      try {
+        const res = await fetch(CONFIG.MEALS_CSV_URL);
+        const rows = parseCSV(await res.text());
+        const list = document.getElementById("meals-list");
+        list.innerHTML = rows.map(([day, meal]) => `
+          <li><span class="day">${day || ""}</span><span>${meal || "—"}</span></li>
+        `).join("");
+      } catch (e) {
+        document.getElementById("meals-list").innerHTML = "<li>Could not load meals.</li>";
+      }
+    }
+
+    // Fetch To-Dos
+    async function loadTodos() {
+      try {
+        const res = await fetch(CONFIG.TODO_CSV_URL);
+        const rows = parseCSV(await res.text());
+        const list = document.getElementById("todo-list");
+        list.innerHTML = rows.map(([task, done]) => {
+          const isDone = (done || "").toUpperCase() === "TRUE";
+          return `<li class="${isDone ? 'done' : ''}">${isDone ? '☑' : '☐'} ${task}</li>`;
+        }).join("");
+      } catch (e) {
+        document.getElementById("todo-list").innerHTML = "<li>Could not load tasks.</li>";
+      }
+    }
+
+    // Initial load + auto-refresh every 5 minutes
+    function refreshAll() {
+      loadMeals();
+      loadTodos();
+    }
+    refreshAll();
+    setInterval(refreshAll, 5 * 60 * 1000);
+  </script>
+</body>
+</html>
